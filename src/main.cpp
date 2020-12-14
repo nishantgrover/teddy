@@ -139,8 +139,10 @@ int main(int, char* argv[])
             addToTriangleBuffer();
             createHalfEdgeBuffers(points,triangles,vertices,faces);
             markTriangles(faces);
+            faces= pruneTriangles(vertices,faces);
+            
             for (auto face:faces){
-                std::cout<<"FACE TYPE: "<<face->triangleType<<std::endl;
+                std::cout<<"FACE TYPE: "<<face->e->v->x<<std::endl;
             }
             controlPointsUpdated = true;
             mouseDowned = false;

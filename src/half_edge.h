@@ -144,7 +144,34 @@ static void createHalfEdgeBuffers(std::vector<p2t::Point*> &points, std::vector<
     }
 }
 
-static void pruneTriangles(std::vector<vertex *> vertices, std::vector<face *> faces){
+static int indexOfVertex(float x, float y, std::vector<vertex *> *vertices){
+    int indx=0;
+    bool foundIndx;
+    int centre;
+    float d;
+    for (auto point: points){
+        d = sqrt(pow( x*x  - point->x*point->x , 2 )+pow( y*y  - point->y*point->y , 2 ));
+        if (d<=0.00001){
+            foundIndx = true;
+            break;
+        }
+        indx++;
+    }
+    if (!foundIndx){
+        centre = vertices->size();
+        vertices->push_back(makeHalfEdgeVertex(x,y,0.0,vertices->size()));
+    }
+    else{
+        centre = indx;
+    }
+    return centre;
+}
+
+static bool outsideCircle(vertex *v3,float centerX,float centerY, float radius){
+    return pow(v3->x-centerX,2)+pow(v3->y-centerY,2)>pow(radius,2);
+}
+
+static std::vector<face *> pruneTriangles(std::vector<vertex *> vertices, std::vector<face *> faces){
     edge *prevE;
     edge *e;
     edge *opp;
@@ -152,47 +179,146 @@ static void pruneTriangles(std::vector<vertex *> vertices, std::vector<face *> f
     float fanPoint[3];
     float d;
     int centre;
+    bool outside=false;
     bool foundIndx =false;
-    std::vector<vertex *> uneccVertices;
+    int cnt;
+    vertex *v1;
+    vertex *v2;
+    vertex *v3;
+    std::vector<face *> pruned_faces; 
+    std::deque<vertex *> uneccVertices;
     for (auto face:faces){
         if (face->triangleType==2){
-            prevE = face->e;
+            prevE = face->e; 
             e = face->e;
-            while (e->opposite!=NULL || e != prevE){
-                e = e->opposite;
-            }
-            vertex *v1 = e->v;
-            vertex *v2 = e->next->v;
-            vertex *v3 = e->next->next->v;
-            if (e->opposite->f->triangleType ==0){
-                opp = e ->opposite;
-                fanPoint[0] = (v1->x+v2->x + opp->next->next->v->x)/3;
-                fanPoint[1] = (v1->y+v2->y + opp->next->next->v->y)/3;
-                fanPoint[2] = 0.0;
-                indx= 0;
-                for (auto point: points){
-                    d = sqrt(pow( fanPoint[0]*fanPoint[0]  - point->x*point->x , 2 )+pow( fanPoint[1]*fanPoint[1]  - point->y*point->y , 2 ));
-                    if (d<=0.00001){
-                        foundIndx = true;
-                        break;
+            uneccVertices.clear();
+            while (!outside){
+                std::cout<<"pls"<<std::endl;
+                outside = false;
+                e = e->next;
+                cnt =0;
+                while (e->opposite==NULL && cnt<=3){
+                    e = e->next;
+                    std::cout<<"OPPOSITE EDGE: "<<e->opposite<<std::endl;
+                    std::cout<<e<<"    "<<prevE<<std::endl;
+                    cnt+=1;
+                }
+                std::cout<<"edge selected:  "<<e<<"  OPPOSITE EDGE: "<<e->opposite<<std::endl;
+                face->visit=1;
+                v1 = e->v;
+                v2 = e->next->v;
+                v3 = e->next->next->v;
+                if (e->opposite->f->triangleType ==0){
+                    opp = e ->opposite;
+                    fanPoint[0] = (v1->x+v2->x + opp->next->next->v->x)/3;
+                    fanPoint[1] = (v1->y+v2->y + opp->next->next->v->y)/3;
+                    fanPoint[2] = 0.0;
+                    centre = indexOfVertex(fanPoint[0],fanPoint[0],&vertices);
+                    break;
+                }
+                if (!(std::find(uneccVertices.begin(),uneccVertices.end(),v3) !=uneccVertices.end()))
+                    uneccVertices.push_front(v3);
+                
+                // vertex * fan_center;
+                std::cout<<"here?"<<std::endl;
+                float centerX = (v1->x+v2->x)/2;
+                float centerY = (v1->y+v2->y)/2;
+                float radius = sqrt(pow(v1->x-v2->x,2) + pow(v1->y-v2->y,2))/2;
+                for (int i=1;i<=uneccVertices.size()-1;i++){
+                    vertex * v = uneccVertices.at(i);
+                    if (outsideCircle(v,centerX,centerY,radius)){
+                        centre = vertices.size();
+                        vertices.push_back(makeHalfEdgeVertex(centerX,centerY,0.0,vertices.size()));
+                        outside = true;
                     }
-                    indx++;
                 }
-                if (!foundIndx){
-                    centre = vertices.size();
-                    vertices.push_back(makeHalfEdgeVertex(fanPoint[0],fanPoint[1],fanPoint[2],vertices.size()));
-                }
-                else{
-                    centre = indx;
+                if (!(std::find(uneccVertices.begin(),uneccVertices.end(),v2) !=uneccVertices.end()))
+                    uneccVertices.push_front(v2);
+
+                if (!(std::find(uneccVertices.begin(),uneccVertices.end(),v1) !=uneccVertices.end()))
+                    uneccVertices.push_back(v1);
+                e = e->opposite;
+                std::cout<<"loop agen pls"<<std::endl;
+                
+            }
+            std::cout<<"im out"<<std::endl;
+            if (uneccVertices.size() !=0){
+                for (int i=0;i<uneccVertices.size()-1;i++){
+                    // if (uneccVertices.si)
+                    std::cout<<"i value: "<<i<<"   "<<(i+1)<<"  max:  " <<uneccVertices.size()<<std::endl;
+                    makeHalfEdgeFace(uneccVertices.at(i)->vNum,uneccVertices.at(i+1)->vNum,centre,vertices, pruned_faces);
                 }
             }
-            if (!(std::find(uneccVertices.begin(),uneccVertices.end(),v3) !=uneccVertices.end()))
-                uneccVertices.push_back(v3);
-            
-        }
-
-
+        }   
     }
+
+    for (auto face:faces){
+        std::cout<<"Triangle Visit: "<<face->visit<<std::endl;
+        std::cout<<"Triangle type: "<<face->triangleType<<std::endl;
+    }
+    std::cout<<"yoyoyo"<<std::endl;
+    for (auto face: faces){
+        if (face->visit==0 && face->triangleType!=0){
+            e = face->e;
+            e = e->next;
+            cnt =0;
+            std::cout<<"pls maut"<<std::endl;
+            std::cout<<"Triangle type: "<<face->triangleType<<std::endl;
+            std::cout<<"OPPOSITE EDGE: "<<e->opposite<<std::endl;
+                    // std::cout<<e<<"    "<<prevE<<std::endl;
+            while (e->opposite!=NULL && cnt<=5){
+                e = e->next;
+                std::cout<<"OPPOSITE EDGE: "<<e->opposite<<std::endl;
+                std::cout<<e<<"    "<<prevE<<std::endl;
+                cnt +=1;
+            }
+            face->visit=1;
+            v1 = e->v;
+            v2 = e->next->v;
+            v3 = e->next->next->v;
+            int center1 = indexOfVertex((v2->x+v3->x)/2,(v2->y+v3->y)/2,&vertices);
+            int center2 = indexOfVertex((v1->x+v3->x)/2,(v1->y+v3->y)/2,&vertices);
+            makeHalfEdgeFace(v1->vNum,v2->vNum,center1,vertices, pruned_faces);
+            makeHalfEdgeFace(v1->vNum,center2,center1,vertices, pruned_faces);
+            makeHalfEdgeFace(center1,center2,v3->vNum,vertices, pruned_faces);
+        }
+        else if (face->triangleType==0){
+            e = face->e;
+            fanPoint[0] = (e->v->x + e->next->v->x)/2;
+            fanPoint[1] = (e->v->y + e->next->v->y)/2;
+            fanPoint[2] = 0.0;
+            indx = 0;
+            foundIndx = false;
+            v1 = e->v;
+            v2 = e->next->v;
+            v3 = e->next->next->v;
+            int centroid;
+            for (auto point: points){
+                d = sqrt(pow( fanPoint[0]*fanPoint[0]  - point->x*point->x , 2 )+pow( fanPoint[1]*fanPoint[1]  - point->y*point->y , 2 ));
+                if (d<=0.00001){
+                    foundIndx = true;
+                    break;
+                }
+                indx++;
+            }
+            for (int i =0;i<3;i++){
+                if(e->opposite!=NULL && (e->opposite->f->triangleType==0 || e->opposite->f->visit==0 || foundIndx)){
+
+                    fanPoint[0] = (v1->x+v2->x + v3->x)/3;
+                    fanPoint[1] = (v1->y+v2->y + v3->y)/3;
+                    fanPoint[2] = 0.0;
+                    centroid = indexOfVertex(fanPoint[0],fanPoint[1],&vertices);
+                    centre = indexOfVertex((e->v->x+e->next->v->x)/2, (e->v->y+e->next->v->y)/2,&vertices);
+                    makeHalfEdgeFace(centre,centroid,e->v->vNum,vertices,pruned_faces);
+                    makeHalfEdgeFace(centre,centroid,e->next->v->vNum,vertices,pruned_faces);
+                }
+                e = e->next;
+            }
+        }
+    
+    }
+    std::cout<<"ended"<<std::endl;
+    return pruned_faces;
 }
 
 
