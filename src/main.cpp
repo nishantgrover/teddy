@@ -41,6 +41,7 @@ void pushPoint(float x,float y){
 }
 
 void addToTriangleBuffer(){
+    triangleFlattenedArray.clear();
     for (auto triangle: triangles){
         for (int i =0;i<3;i++){
             triangleFlattenedArray.push_back(triangle->GetPoint(i)->x);
@@ -57,6 +58,32 @@ void addToTriangleBuffer(){
         triangleFlattenedArray.push_back(triangle->GetPoint(1)->y);
         triangleFlattenedArray.push_back(0);
     }
+}
+
+void makeFaceBuffer(){
+    triangleFlattenedArray.clear();
+    
+    for (auto face: faces){
+        triangleFlattenedArray.push_back(face->e->v->x);
+        triangleFlattenedArray.push_back(face->e->v->y);
+        triangleFlattenedArray.push_back(0);
+        triangleFlattenedArray.push_back(face->e->next->v->x);
+        triangleFlattenedArray.push_back(face->e->next->v->y);
+        triangleFlattenedArray.push_back(0);
+        triangleFlattenedArray.push_back(face->e->next->next->v->x);
+        triangleFlattenedArray.push_back(face->e->next->next->v->y);
+        triangleFlattenedArray.push_back(0);
+        triangleFlattenedArray.push_back(face->e->v->x);
+        triangleFlattenedArray.push_back(face->e->v->y);
+        triangleFlattenedArray.push_back(0);
+        triangleFlattenedArray.push_back(face->e->next->next->v->x);
+        triangleFlattenedArray.push_back(face->e->next->next->v->y);
+        triangleFlattenedArray.push_back(0);
+        triangleFlattenedArray.push_back(face->e->next->v->x);
+        triangleFlattenedArray.push_back(face->e->next->v->y);
+        triangleFlattenedArray.push_back(0);
+    }
+
 }
 
 int main(int, char* argv[])
@@ -140,14 +167,18 @@ int main(int, char* argv[])
             createHalfEdgeBuffers(points,triangles,vertices,faces);
             markTriangles(faces);
             faces= pruneTriangles(vertices,faces);
-            
+            // makeFaceBuffer();
             for (auto face:faces){
                 std::cout<<"FACE TYPE: "<<face->e->v->x<<std::endl;
             }
             controlPointsUpdated = true;
             mouseDowned = false;
         }
-
+        else if (io.MouseReleased[1] &&  !ImGui::IsAnyItemActive() && !ImGui::IsAnyItemHovered()){
+            makeFaceBuffer();
+            controlPointsUpdated = true;
+            mouseDowned = false;
+        }
         if(controlPointsUpdated) {
             flag=1;
             if (io.MouseDown[0] && !ImGui::IsAnyItemActive()){
@@ -163,7 +194,7 @@ int main(int, char* argv[])
                 glfwSwapBuffers(window);
             }
 
-            if (io.MouseReleased[0] &&  !ImGui::IsAnyItemActive()){
+            if ((io.MouseReleased[0] || io.MouseReleased[1]) &&  !ImGui::IsAnyItemActive()){
                 glBindVertexArray(VAO_triangles);
                 glBindBuffer(GL_ARRAY_BUFFER, VAO_triangles);
                 glBufferData(GL_ARRAY_BUFFER, triangleFlattenedArray.size()*sizeof(GLfloat), &triangleFlattenedArray[0], GL_DYNAMIC_DRAW);
