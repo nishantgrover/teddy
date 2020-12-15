@@ -229,8 +229,15 @@ static std::vector<face *> pruneTriangles(std::vector<vertex *> vertices, std::v
                     fanPoint[1] = (v1->y+v2->y + opp->next->next->v->y)/3;
                     fanPoint[2] = 0.0;
                     centre = indexOfVertex(fanPoint[0],fanPoint[1],&vertices);
+                    if (count(uneccVertices.begin(), uneccVertices.end(), v2) == 0)
+                    uneccVertices.push_front(v2);
+
+                    if (count(uneccVertices.begin(), uneccVertices.end(), v1) == 0)
+                        uneccVertices.push_back(v1);
                     break;
                 }
+
+
                 if (count(uneccVertices.begin(), uneccVertices.end(), v3) == 0)
                     uneccVertices.push_front(v3);
                 
@@ -268,33 +275,7 @@ static std::vector<face *> pruneTriangles(std::vector<vertex *> vertices, std::v
     }
 
     for (auto face: faces){
-
-        if (face->visit==0){
-            e = face->e;
-            e = e->next;
-            cnt =0;
-            std::cout<<"pls maut"<<std::endl;
-            std::cout<<"Triangle type: "<<face->triangleType<<std::endl;
-            std::cout<<"OPPOSITE EDGE: "<<e->opposite<<std::endl;
-                    // std::cout<<e<<"    "<<prevE<<std::endl;
-            while (e->opposite!=NULL && cnt<=5){
-                e = e->next;
-                std::cout<<"OPPOSITE EDGE: "<<e->opposite<<std::endl;
-                std::cout<<e<<"    "<<prevE<<std::endl;
-                cnt +=1;
-            }
-            face->visit=1;
-            e->f->visit=1;
-            v1 = e->v;
-            v2 = e->next->v;
-            v3 = e->next->next->v;
-            int center1 = indexOfVertex((v2->x+v3->x)/2.0,(v2->y+v3->y)/2.0,&vertices);
-            int center2 = indexOfVertex((v1->x+v3->x)/2.0,(v1->y+v3->y)/2.0,&vertices);
-            makeHalfEdgeFace(v1->vNum,v2->vNum,center1,vertices, pruned_faces);
-            makeHalfEdgeFace(v1->vNum,center1,center2,vertices, pruned_faces);
-            makeHalfEdgeFace(center1,v3->vNum,center2, vertices, pruned_faces);
-        }
-        else if (face->triangleType==0){
+        if (face->triangleType==0){
             int centroid;            
             e = face->e;
             for (int i =0;i<3;i++){
@@ -324,6 +305,32 @@ static std::vector<face *> pruneTriangles(std::vector<vertex *> vertices, std::v
                 }
                 e = e->next;
             }
+        }
+
+        else if (face->visit==0){
+            e = face->e;
+            e = e->next;
+            cnt =0;
+            std::cout<<"pls maut"<<std::endl;
+            std::cout<<"Triangle type: "<<face->triangleType<<std::endl;
+            std::cout<<"OPPOSITE EDGE: "<<e->opposite<<std::endl;
+                    // std::cout<<e<<"    "<<prevE<<std::endl;
+            while (e->opposite!=NULL && cnt<=5){
+                e = e->next;
+                std::cout<<"OPPOSITE EDGE: "<<e->opposite<<std::endl;
+                std::cout<<e<<"    "<<prevE<<std::endl;
+                cnt +=1;
+            }
+            face->visit=1;
+            e->f->visit=1;
+            v1 = e->v;
+            v2 = e->next->v;
+            v3 = e->next->next->v;
+            int center1 = indexOfVertex((v2->x+v3->x)/2.0,(v2->y+v3->y)/2.0,&vertices);
+            int center2 = indexOfVertex((v1->x+v3->x)/2.0,(v1->y+v3->y)/2.0,&vertices);
+            makeHalfEdgeFace(v1->vNum,v2->vNum,center1,vertices, pruned_faces);
+            makeHalfEdgeFace(v1->vNum,center1,center2,vertices, pruned_faces);
+            makeHalfEdgeFace(center1,v3->vNum,center2, vertices, pruned_faces);
         }
     }
     std::cout<<"ended"<<std::endl;
