@@ -3,6 +3,7 @@
 #include <math.h>
 #include <map>
 #include<bits/stdc++.h> 
+#include<algorithm>
 extern std::map<std::pair<int ,int>,struct halfedge *> dictionary_edges;
 extern std::vector<p2t::Point*> points;
 typedef struct halfedge{
@@ -24,6 +25,7 @@ typedef struct halfvertex{
     float y;
     float z;
     struct halfedge *e;
+    bool boundary;
     int vNum;
 } vertex;
 
@@ -41,10 +43,11 @@ static void deleteFaces(std::vector<face*> &faces) {
     faces.clear();
 }
 
-static vertex * makeHalfEdgeVertex(float x, float y, float z, int vertexNumber){
+static vertex * makeHalfEdgeVertex(float x, float y, float z, int vertexNumber, bool boundary){
     vertex *v = new vertex;
     v->x = x; v->y = y; v->z = z;
     v->e = NULL;  v->vNum = vertexNumber;
+    v->boundary=boundary;
     return v;
 }
 
@@ -128,7 +131,7 @@ static void createHalfEdgeBuffers(std::vector<p2t::Point*> &points, std::vector<
 
     for (auto point: points){
         // std::cout<< vertices.size()<<std::endl;
-        vertices.push_back(makeHalfEdgeVertex(point->x,point->y,0,vertices.size()));
+        vertices.push_back(makeHalfEdgeVertex(point->x,point->y,0,vertices.size(),true));
     }
 
     for (auto triangle:triangles){
@@ -171,7 +174,7 @@ static int indexOfVertex(float x, float y, std::vector<vertex *> *vertices){
     }
     if (!foundIndx){
         centre = vertices->size();
-        vertices->push_back(makeHalfEdgeVertex(x,y,0.0,vertices->size()));
+        vertices->push_back(makeHalfEdgeVertex(x,y,0.0,vertices->size(),false));
     }
     else{
         std::cout<<"--AM I HERE?\n";
@@ -185,7 +188,135 @@ static bool outsideCircle(vertex *v3,float centerX,float centerY, float radius){
     return pow(v3->x-centerX,2)+pow(v3->y-centerY,2)>pow(radius,2);
 }
 
-static std::vector<face *> pruneTriangles(std::vector<vertex *> vertices, std::vector<face *> faces){
+static void lengthElevate(edge *hEdge, float &len, int &n){
+    float dir[2];
+    std::cout<<"NEXT KYA hai?: "<<hEdge->next<<"\n";
+    if(hEdge->next->v->boundary){
+        dir[0]=hEdge->v->x - hEdge->next->v->x;
+        dir[1]=hEdge->v->y - hEdge->next->v->y;
+        len+=sqrt(dir[0]*dir[0]+dir[1]*dir[1]);
+        n+=1;
+    }
+    hEdge=hEdge->opposite->next;
+}
+
+static void samplePointsLengthElevate(edge *hEdge, int &samplePoints, std::vector<vertex *> &newPts, std::map<std::pair<int, int>, std::vector<int>> &samplePtsPerEdge){
+    vertex *v1, *v2;
+    std::vector<int> sampleIndices;
+    if((hEdge->v->boundary && !hEdge->next->v->boundary) || (!hEdge->v->boundary && hEdge->next->v->boundary)){
+        if(!hEdge->v->boundary){
+            v1=hEdge->v;
+            v2=hEdge->next->v;
+        }
+        else{
+            v2=hEdge->v;
+            v1=hEdge->next->v;
+        }
+        glm::vec3 ellipsoid_axis(v2->x-v1->x, v2->y-v1->y, 0.0);
+        float a= ellipsoid_axis.length();
+        float b= v1->z;
+        float t;
+        for(int i=1;i<samplePoints;i++){
+            t=i/(samplePoints+1);
+            vertex *v;
+            v->x = v1->x + t*ellipsoid_axis[0];
+            v->y = v1->y + t*ellipsoid_axis[1];
+            v->z = b*sqrt(1-(t*t));
+            newPts.push_back(v);
+            sampleIndices.push_back(newPts.size()-1);    
+        }
+        std::pair<int,int> p;
+        p.first = std::min(v1->vNum, v2->vNum);
+        p.second = std::max(v1->vNum, v2->vNum);
+        samplePtsPerEdge[p]=sampleIndices;
+    }
+    hEdge=hEdge->next;
+}
+
+static std::vector<face *> erection(std::vector<vertex *> &vertices, std::vector<face *> &faces){
+    
+    int samplePoints;
+    std::vector<face *> erected_faces; 
+    edge *hEdge;
+    
+    for(auto v:vertices){
+        if(!v->boundary && v->e->opposite!=NULL){
+            int n=0;
+            float len=0.0;
+            hEdge=v->e;
+            std::cout<<"MY BOUNDARY: "<<v->boundary<<"\n MY OPPOSITE"<<hEdge->opposite<<"\n";
+            lengthElevate(hEdge, len, n);
+            while(hEdge->opposite!=NULL && hEdge!=v->e){
+                lengthElevate(hEdge, len, n);
+            }
+            v->z=len/n;
+            samplePoints=int(len/n);
+        }
+    }
+
+    std::vector<vertex *> newPts(vertices);
+
+    std::map<std::pair<int, int>, std::vector<int>> samplePtsPerEdge;
+    for(auto face:faces){
+        hEdge=face->e;
+        samplePointsLengthElevate(hEdge, samplePoints, newPts, samplePtsPerEdge);
+        while(hEdge!=face->e)
+            samplePointsLengthElevate(hEdge, samplePoints, newPts, samplePtsPerEdge);
+    }
+
+    int cnt=0;
+    
+    for(auto face:faces){
+        hEdge=face->e;
+        cnt=0;
+        hEdge=hEdge->next;
+        while(cnt++<3 && hEdge!=face->e){
+            if((hEdge->v->boundary && hEdge->next->v->boundary) || (!hEdge->v->boundary && !hEdge->next->v->boundary))
+                break;
+            hEdge=hEdge->next;
+        }
+        
+        std::pair<int,int> p;
+        p.first = std::min(hEdge->next->v->vNum, hEdge->next->next->v->vNum);
+        p.second = std::max(hEdge->next->v->vNum, hEdge->next->next->v->vNum);
+        
+        std::vector<int> edge1SamplePts = samplePtsPerEdge[p];
+
+        std::pair<int,int> p1;
+        p1.first = std::min(hEdge->next->next->v->vNum, hEdge->next->next->next->v->vNum);
+        p1.second = std::max(hEdge->next->next->v->vNum, hEdge->next->next->next->v->vNum);
+        
+        std::vector<int> edge2SamplePts = samplePtsPerEdge[p1];
+
+        if(hEdge->v->boundary && hEdge->next->v->boundary){
+            std::reverse(edge1SamplePts.begin(), edge1SamplePts.end());
+            std::reverse(edge2SamplePts.begin(), edge2SamplePts.end());
+        }
+
+        makeHalfEdgeFace(hEdge->v->vNum, hEdge->next->v->vNum, edge1SamplePts[0], newPts, erected_faces);
+
+        makeHalfEdgeFace(edge2SamplePts[0], edge1SamplePts[0], hEdge->next->v->vNum,newPts, erected_faces);
+
+        int i=0;
+        while(i<samplePoints-1){
+            
+            makeHalfEdgeFace(edge1SamplePts[i], edge2SamplePts[i], edge1SamplePts[i+1], newPts, erected_faces);
+
+            makeHalfEdgeFace(edge2SamplePts[i], edge2SamplePts[i+1], edge1SamplePts[i+1], newPts, erected_faces);
+
+            i++;
+        }
+
+        makeHalfEdgeFace(edge1SamplePts[i], hEdge->next->next->v->vNum, edge2SamplePts[i], newPts, erected_faces);
+
+    }
+
+    deleteFaces(faces);
+    return erected_faces;
+
+}
+
+static std::vector<face *> pruneTriangles(std::vector<vertex *> &vertices, std::vector<face *> &faces){
     edge *prevE;
     edge *e;
     edge *opp;
@@ -250,7 +381,7 @@ static std::vector<face *> pruneTriangles(std::vector<vertex *> vertices, std::v
                     vertex * v = uneccVertices.at(i);
                     if (outsideCircle(v,centerX,centerY,radius)){
                         centre = vertices.size();
-                        vertices.push_back(makeHalfEdgeVertex(centerX,centerY,0.0,vertices.size()));
+                        vertices.push_back(makeHalfEdgeVertex(centerX,centerY,0.0,vertices.size(),false));
                         outside = true;
                     }
                 }

@@ -166,7 +166,8 @@ int main(int, char* argv[])
             addToTriangleBuffer();
             createHalfEdgeBuffers(points,triangles,vertices,faces);
             markTriangles(faces);
-            faces= pruneTriangles(vertices,faces);
+            faces= pruneTriangles(vertices, faces);
+            faces= erection(vertices, faces);
             // makeFaceBuffer();
             for (auto face:faces){
                 std::cout<<"FACE TYPE: "<<face->e->v->x<<std::endl;
