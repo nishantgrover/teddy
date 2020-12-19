@@ -189,7 +189,17 @@ static bool outsideCircle(vertex *v3,float centerX,float centerY, float radius){
     return pow(v3->x-centerX,2)+pow(v3->y-centerY,2)>pow(radius,2);
 }
 
-
+static void lengthElevate(edge **hEdge, float &len, int &n){
+    float dir[2];
+    // std::cout<<"NEXT KYA hai?: "<<hEdge->next<<"\n";
+    if((*hEdge)->next->v->boundary){
+        dir[0]=(*hEdge)->v->x - (*hEdge)->next->v->x;
+        dir[1]=(*hEdge)->v->y - (*hEdge)->next->v->y;
+        len+=sqrt(dir[0]*dir[0]+dir[1]*dir[1]);
+        n+=1;
+    }
+    (*hEdge)=(*hEdge)->opposite->next;
+}
 
 static void samplePointsLengthElevate(edge **hEdge, std::vector<vertex *> &newPts, std::map<std::pair<int, int>, std::vector<int>> &samplePtsPerEdge){
     vertex *v1, *v2;
@@ -207,7 +217,7 @@ static void samplePointsLengthElevate(edge **hEdge, std::vector<vertex *> &newPt
         float a= ellipsoid_axis.length();
         float b= v1->z;
         float t = 1.0;
-        for(int i=1;i<v1->samplePoints;i++){
+        for(int i=1;i<v1->samplePoints+1;i++){
             t=((float)i/(float)(v1->samplePoints+1));
             std::cout<<"t: "<<t<<" i: "<<i<<" sample point: "<<v1->samplePoints<<" vNUM: "<<v1->vNum<<"\n";
             vertex *v = new vertex;
@@ -223,18 +233,6 @@ static void samplePointsLengthElevate(edge **hEdge, std::vector<vertex *> &newPt
         samplePtsPerEdge[p]=sampleIndices;
     }
     (*hEdge)=(*hEdge)->next;
-}
-
-static void lengthElevate(edge **hEdge, float &len, int &n){
-    float dir[2];
-    // std::cout<<"NEXT KYA hai?: "<<hEdge->next<<"\n";
-    if((*hEdge)->next->v->boundary){
-        dir[0]=(*hEdge)->v->x - (*hEdge)->next->v->x;
-        dir[1]=(*hEdge)->v->y - (*hEdge)->next->v->y;
-        len+=sqrt(dir[0]*dir[0]+dir[1]*dir[1]);
-        n+=1;
-    }
-    (*hEdge)=(*hEdge)->opposite->next;
 }
 
 static std::vector<face *> erection(std::vector<vertex *> &vertices, std::vector<face *> &faces){
