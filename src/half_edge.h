@@ -189,37 +189,28 @@ static bool outsideCircle(vertex *v3,float centerX,float centerY, float radius){
     return pow(v3->x-centerX,2)+pow(v3->y-centerY,2)>pow(radius,2);
 }
 
-static void lengthElevate(edge *hEdge, float &len, int &n){
-    float dir[2];
-    // std::cout<<"NEXT KYA hai?: "<<hEdge->next<<"\n";
-    if(hEdge->next->v->boundary){
-        dir[0]=hEdge->v->x - hEdge->next->v->x;
-        dir[1]=hEdge->v->y - hEdge->next->v->y;
-        len+=sqrt(dir[0]*dir[0]+dir[1]*dir[1]);
-        n+=1;
-    }
-    hEdge=hEdge->opposite->next;
-}
 
-static void samplePointsLengthElevate(edge *hEdge, int &samplePoints, std::vector<vertex *> &newPts, std::map<std::pair<int, int>, std::vector<int>> &samplePtsPerEdge){
+
+static void samplePointsLengthElevate(edge **hEdge, std::vector<vertex *> &newPts, std::map<std::pair<int, int>, std::vector<int>> &samplePtsPerEdge){
     vertex *v1, *v2;
     std::vector<int> sampleIndices;
-    if((hEdge->v->boundary && !hEdge->next->v->boundary) || (!hEdge->v->boundary && hEdge->next->v->boundary)){
-        if(!hEdge->v->boundary){
-            v1=hEdge->v;
-            v2=hEdge->next->v;
+    if(((*hEdge)->v->boundary && !(*hEdge)->next->v->boundary) || (!(*hEdge)->v->boundary && (*hEdge)->next->v->boundary)){
+        if(!(*hEdge)->v->boundary){
+            v1=(*hEdge)->v;
+            v2=(*hEdge)->next->v;
         }
         else{
-            v2=hEdge->v;
-            v1=hEdge->next->v;
+            v2=(*hEdge)->v;
+            v1=(*hEdge)->next->v;
         }
         glm::vec3 ellipsoid_axis(v2->x-v1->x, v2->y-v1->y, 0.0);
         float a= ellipsoid_axis.length();
         float b= v1->z;
-        float t;
-        for(int i=1;i<samplePoints;i++){
-            t=i/(samplePoints+1);
-            vertex *v;
+        float t = 1.0;
+        for(int i=1;i<v1->samplePoints;i++){
+            t=((float)i/(float)(v1->samplePoints+1));
+            std::cout<<"t: "<<t<<" i: "<<i<<" sample point: "<<v1->samplePoints<<" vNUM: "<<v1->vNum<<"\n";
+            vertex *v = new vertex;
             v->x = v1->x + t*ellipsoid_axis[0];
             v->y = v1->y + t*ellipsoid_axis[1];
             v->z = b*sqrt(1-(t*t));
@@ -231,7 +222,19 @@ static void samplePointsLengthElevate(edge *hEdge, int &samplePoints, std::vecto
         p.second = std::max(v1->vNum, v2->vNum);
         samplePtsPerEdge[p]=sampleIndices;
     }
-    hEdge=hEdge->next;
+    (*hEdge)=(*hEdge)->next;
+}
+
+static void lengthElevate(edge **hEdge, float &len, int &n){
+    float dir[2];
+    // std::cout<<"NEXT KYA hai?: "<<hEdge->next<<"\n";
+    if((*hEdge)->next->v->boundary){
+        dir[0]=(*hEdge)->v->x - (*hEdge)->next->v->x;
+        dir[1]=(*hEdge)->v->y - (*hEdge)->next->v->y;
+        len+=sqrt(dir[0]*dir[0]+dir[1]*dir[1]);
+        n+=1;
+    }
+    (*hEdge)=(*hEdge)->opposite->next;
 }
 
 static std::vector<face *> erection(std::vector<vertex *> &vertices, std::vector<face *> &faces){
@@ -244,14 +247,21 @@ static std::vector<face *> erection(std::vector<vertex *> &vertices, std::vector
         if(!v->boundary && v->e->opposite!=NULL){
             int n=0;
             float len=0.0;
+            int cnt = 0;
             hEdge=v->e;
-            // std::cout<<"MY BOUNDARY: "<<v->boundary<<"\n MY OPPOSITE"<<hEdge->opposite<<"\n";
-            lengthElevate(hEdge, len, n);
+            bool x = hEdge==v->e;
+            std::cout<<"vNUM: "<<v->vNum<<"\n";
+            // std::cout<<"Truth value: "<<x<<"\n";
+            lengthElevate(&hEdge, len, n);
+            std::cout<<"Changed vnum: "<<hEdge->v->vNum<<"\n";
             while(hEdge->opposite!=NULL && hEdge!=v->e){
-                lengthElevate(hEdge, len, n);
+                lengthElevate(&hEdge, len, n);
+                std::cout<<"Changed vnum: "<<hEdge->v->vNum<<"\n";
+                cnt ++;
             }
             v->z=len/n;
-            v->samplePoints=int(len/n);
+            v->samplePoints=int(len/n/0.15);
+            std::cout<<"Length: "<<len<<"  n: "<<n<<"  cnt: "<<cnt<<"  sample points: "<<v->samplePoints<<std::endl;
         }
     }
 
@@ -260,9 +270,10 @@ static std::vector<face *> erection(std::vector<vertex *> &vertices, std::vector
     std::map<std::pair<int, int>, std::vector<int>> samplePtsPerEdge;
     for(auto face:faces){
         hEdge=face->e;
-        samplePointsLengthElevate(hEdge, samplePoints, newPts, samplePtsPerEdge);
+        samplePointsLengthElevate(&hEdge, newPts, samplePtsPerEdge);
         while(hEdge!=face->e)
-            samplePointsLengthElevate(hEdge, samplePoints, newPts, samplePtsPerEdge);
+            samplePointsLengthElevate(&hEdge, newPts, samplePtsPerEdge);
+        std::cout<<"--------\n";
     }
 
     int cnt=0;

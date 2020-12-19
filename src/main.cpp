@@ -174,7 +174,10 @@ int main(int, char* argv[])
             createHalfEdgeBuffers(points,triangles,vertices,faces);
             markTriangles(faces);
             faces= pruneTriangles(vertices, faces);
-//            faces= erection(vertices, faces);
+            for (auto v:vertices){
+                std::cout<<"X: "<<v->x<<"  Y:   "<< v->y<<"  V->Boundary:  "<<v->boundary<<" OPPOSiTE: "<<v->e->opposite<<"   VNUM: "<<v->vNum<<" "<<std::endl;
+            }
+           
             // makeFaceBuffer();
             controlPointsUpdated = true;
             mouseDowned = false;
@@ -193,6 +196,8 @@ int main(int, char* argv[])
             verticesToDraw.clear();
             std::cout<<"----------------------------------------------------------\n";
             int n=0;
+            faces= erection(vertices, faces);
+
             for(auto v:vertices){
                 if(v->boundary){
                     verticesToDraw.push_back(v->x);
@@ -206,6 +211,7 @@ int main(int, char* argv[])
             controlPointsUpdated=true;
         }
         else if (io.KeyAlt &&  !ImGui::IsAnyItemActive() && !ImGui::IsAnyItemHovered()){
+            
             verticesToDraw.clear();
             std::cout<<"#############################################################\n";
             int n=0;
