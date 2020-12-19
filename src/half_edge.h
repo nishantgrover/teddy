@@ -27,6 +27,7 @@ typedef struct halfvertex{
     struct halfedge *e;
     bool boundary;
     int vNum;
+    int samplePoints;
 } vertex;
 
 static void deleteFaces(std::vector<face*> &faces) {
@@ -177,10 +178,10 @@ static int indexOfVertex(float x, float y, std::vector<vertex *> *vertices){
         vertices->push_back(makeHalfEdgeVertex(x,y,0.0,vertices->size(),false));
     }
     else{
-        std::cout<<"--AM I HERE?\n";
+        // std::cout<<"--AM I HERE?\n";
         centre = indx;
     }
-    std::cout<<"**************************************************"<<vertices->size()<<" "<<centre<<"\n\n";
+    // std::cout<<"**************************************************"<<vertices->size()<<" "<<centre<<"\n\n";
     return centre;
 }
 
@@ -190,7 +191,7 @@ static bool outsideCircle(vertex *v3,float centerX,float centerY, float radius){
 
 static void lengthElevate(edge *hEdge, float &len, int &n){
     float dir[2];
-    std::cout<<"NEXT KYA hai?: "<<hEdge->next<<"\n";
+    // std::cout<<"NEXT KYA hai?: "<<hEdge->next<<"\n";
     if(hEdge->next->v->boundary){
         dir[0]=hEdge->v->x - hEdge->next->v->x;
         dir[1]=hEdge->v->y - hEdge->next->v->y;
@@ -244,13 +245,13 @@ static std::vector<face *> erection(std::vector<vertex *> &vertices, std::vector
             int n=0;
             float len=0.0;
             hEdge=v->e;
-            std::cout<<"MY BOUNDARY: "<<v->boundary<<"\n MY OPPOSITE"<<hEdge->opposite<<"\n";
+            // std::cout<<"MY BOUNDARY: "<<v->boundary<<"\n MY OPPOSITE"<<hEdge->opposite<<"\n";
             lengthElevate(hEdge, len, n);
             while(hEdge->opposite!=NULL && hEdge!=v->e){
                 lengthElevate(hEdge, len, n);
             }
             v->z=len/n;
-            samplePoints=int(len/n);
+            v->samplePoints=int(len/n);
         }
     }
 
@@ -339,32 +340,25 @@ static std::vector<face *> pruneTriangles(std::vector<vertex *> &vertices, std::
             uneccVertices.clear();
             outside=false;
             while (!outside){
-                std::cout<<"pls"<<std::endl;
+
                 e = e->next;
                 cnt =0;
                 while (e->opposite==NULL && cnt<=3){
                     e = e->next;
-                    std::cout<<"OPPOSITE EDGE: "<<e->opposite<<std::endl;
-                    std::cout<<e<<"    "<<prevE<<std::endl;
+
                     cnt+=1;
                 }
-                std::cout<<"edge selected:  "<<e<<"  OPPOSITE EDGE: "<<e->opposite<<std::endl;
+
                 face->visit=1;
                 e->f->visit=1;
                 v1 = e->v;
                 v2 = e->next->v;
                 v3 = e->next->next->v;
-                if (e->opposite->f->triangleType ==0){
-                    opp = e ->opposite;
-                    fanPoint[0] = (v1->x+v2->x + opp->next->next->v->x)/3;
-                    fanPoint[1] = (v1->y+v2->y + opp->next->next->v->y)/3;
+                if (e->f->triangleType ==0){
+                    fanPoint[0] = (v1->x+v2->x + v3->x)/3;
+                    fanPoint[1] = (v1->y+v2->y + v3->y)/3;
                     fanPoint[2] = 0.0;
                     centre = indexOfVertex(fanPoint[0],fanPoint[1],&vertices);
-                    if (count(uneccVertices.begin(), uneccVertices.end(), v2) == 0)
-                    uneccVertices.push_front(v2);
-
-                    if (count(uneccVertices.begin(), uneccVertices.end(), v1) == 0)
-                        uneccVertices.push_back(v1);
                     break;
                 }
 
@@ -373,7 +367,7 @@ static std::vector<face *> pruneTriangles(std::vector<vertex *> &vertices, std::
                     uneccVertices.push_front(v3);
                 
                 // vertex * fan_center;
-                std::cout<<"here?"<<std::endl;
+
                 float centerX = (v1->x+v2->x)/2.0;
                 float centerY = (v1->y+v2->y)/2.0;
                 float radius = sqrt(pow(v1->x-v2->x,2) + pow(v1->y-v2->y,2))/2.0;
@@ -391,14 +385,14 @@ static std::vector<face *> pruneTriangles(std::vector<vertex *> &vertices, std::
                 if (count(uneccVertices.begin(), uneccVertices.end(), v1) == 0)
                     uneccVertices.push_back(v1);
                 e = e->opposite;
-                std::cout<<"loop agen pls"<<std::endl;
+
                 
             }
             std::cout<<"im out"<<std::endl;
             if (uneccVertices.size() !=0){
                 for (int i=0;i<uneccVertices.size()-1;i++){
                     // if (uneccVertices.si)
-                    std::cout<<"i value: "<<i<<"   "<<(i+1)<<"  max:  " <<uneccVertices.size()<<std::endl;
+
                     makeHalfEdgeFace(uneccVertices.at(i)->vNum,uneccVertices.at(i+1)->vNum,centre,vertices, pruned_faces);
                 }
             }
@@ -442,14 +436,9 @@ static std::vector<face *> pruneTriangles(std::vector<vertex *> &vertices, std::
             e = face->e;
             e = e->next;
             cnt =0;
-            std::cout<<"pls maut"<<std::endl;
-            std::cout<<"Triangle type: "<<face->triangleType<<std::endl;
-            std::cout<<"OPPOSITE EDGE: "<<e->opposite<<std::endl;
                     // std::cout<<e<<"    "<<prevE<<std::endl;
             while (e->opposite!=NULL && cnt<=5){
                 e = e->next;
-                std::cout<<"OPPOSITE EDGE: "<<e->opposite<<std::endl;
-                std::cout<<e<<"    "<<prevE<<std::endl;
                 cnt +=1;
             }
             face->visit=1;

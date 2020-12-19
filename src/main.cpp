@@ -9,6 +9,7 @@
 #include<bits/stdc++.h> 
 // GLobal variables
 std::vector<float> controlPoints;
+std::vector<float> verticesToDraw;
 int width = 640, height = 640; 
 bool controlPointsUpdated = false;
 std::vector<p2t::Point*> points;
@@ -26,7 +27,7 @@ void pushPoint(float x,float y){
     double rescaled_x = -1.0 + ((1.0*x - 0) / (width - 0)) * (1.0 - (-1.0));
     double rescaled_y = -1.0 + ((1.0*(height - y) - 0) / (height - 0)) * (1.0 - (-1.0));
     p2t::Point* p = new p2t::Point(rescaled_x,rescaled_y); 
-    double minDist = 0.1;
+    double minDist = 0.25;
     if (points.empty()){
         points.push_back(p);
     }
@@ -92,7 +93,6 @@ int main(int, char* argv[])
     ImGuiIO& io = ImGui::GetIO(); // Create IO object
 
 
-
     ImVec4 clear_color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 
     unsigned int shaderProgram = createProgram("./shaders/vshader.vs", "./shaders/fshader.fs");
@@ -105,6 +105,12 @@ int main(int, char* argv[])
     glGenBuffers(1, &VBO_controlPoints);
     glGenVertexArrays(1, &VAO_controlPoints);
 
+    unsigned int VBO_pointsToDraw;
+    unsigned int VAO_pointsToDraw;
+    glGenBuffers(1, &VBO_pointsToDraw);
+    glGenVertexArrays(1, &VAO_pointsToDraw);
+    
+
     unsigned int VBO_triangles;
     unsigned int VAO_triangles;
     glGenBuffers(1, &VBO_triangles);
@@ -116,6 +122,7 @@ int main(int, char* argv[])
     //Display loop
     int flag=0;
     bool displayFlag=true;
+    
 
     while (!glfwWindowShouldClose(window))
     {
@@ -167,11 +174,8 @@ int main(int, char* argv[])
             createHalfEdgeBuffers(points,triangles,vertices,faces);
             markTriangles(faces);
             faces= pruneTriangles(vertices, faces);
-            faces= erection(vertices, faces);
+//            faces= erection(vertices, faces);
             // makeFaceBuffer();
-            for (auto face:faces){
-                std::cout<<"FACE TYPE: "<<face->e->v->x<<std::endl;
-            }
             controlPointsUpdated = true;
             mouseDowned = false;
         }
@@ -179,6 +183,43 @@ int main(int, char* argv[])
             makeFaceBuffer();
             controlPointsUpdated = true;
             mouseDowned = false;
+        }
+        else if (io.KeyShift &&  !ImGui::IsAnyItemActive() && !ImGui::IsAnyItemHovered()){
+            addToTriangleBuffer();
+            controlPointsUpdated = true;
+            mouseDowned = false;
+        }
+        else if (io.KeyCtrl &&  !ImGui::IsAnyItemActive() && !ImGui::IsAnyItemHovered()){
+            verticesToDraw.clear();
+            std::cout<<"----------------------------------------------------------\n";
+            int n=0;
+            for(auto v:vertices){
+                if(v->boundary){
+                    verticesToDraw.push_back(v->x);
+                    verticesToDraw.push_back(v->y);
+                    verticesToDraw.push_back(v->z);
+                    n++;
+                }
+                std::cout<<"X: "<<v->x<<"  Y:   "<< v->y<<"  V->Boundary:  "<<v->boundary<<" OPPOSiTE: "<<v->e->opposite<<"   VNUM: "<<v->vNum<<" "<<std::endl;
+            }
+            std::cout<<"OUTSIDE TOTAL:       "<<n<<std::endl;
+            controlPointsUpdated=true;
+        }
+        else if (io.KeyAlt &&  !ImGui::IsAnyItemActive() && !ImGui::IsAnyItemHovered()){
+            verticesToDraw.clear();
+            std::cout<<"#############################################################\n";
+            int n=0;
+            for(auto v:vertices){
+                if(!v->boundary){
+                    verticesToDraw.push_back(v->x);
+                    verticesToDraw.push_back(v->y);
+                    verticesToDraw.push_back(v->z);
+                    n++;
+                }
+                std::cout<<"X: "<<v->x<<"  Y:   "<< v->y<<"  V->Boundary:  "<<v->boundary<<" OPPOSiTE: "<<v->e->opposite<<"   VNUM: "<<v->vNum<<" "<<std::endl;
+            }
+            std::cout<<"INSIDE TOTAL:       "<<n<<std::endl;
+            controlPointsUpdated=true;
         }
         if(controlPointsUpdated) {
             flag=1;
@@ -195,7 +236,7 @@ int main(int, char* argv[])
                 glfwSwapBuffers(window);
             }
 
-            if ((io.MouseReleased[0] || io.MouseReleased[1]) &&  !ImGui::IsAnyItemActive()){
+            if ((io.MouseReleased[0] || io.MouseReleased[1] || io.KeyShift) &&  !ImGui::IsAnyItemActive()){
                 glBindVertexArray(VAO_triangles);
                 glBindBuffer(GL_ARRAY_BUFFER, VAO_triangles);
                 glBufferData(GL_ARRAY_BUFFER, triangleFlattenedArray.size()*sizeof(GLfloat), &triangleFlattenedArray[0], GL_DYNAMIC_DRAW);
@@ -208,6 +249,32 @@ int main(int, char* argv[])
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
                 glfwSwapBuffers(window);
                 controlPointsUpdated = false;
+            }
+
+            if (io.KeyCtrl && !ImGui::IsAnyItemActive()){
+                glBindVertexArray(VAO_pointsToDraw);
+                glBindBuffer(GL_ARRAY_BUFFER, VBO_pointsToDraw);
+                glBufferData(GL_ARRAY_BUFFER, verticesToDraw.size()*sizeof(GLfloat), &verticesToDraw[0], GL_DYNAMIC_DRAW);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+                glEnableVertexAttribArray(0); 
+                glBindVertexArray(VAO_pointsToDraw);
+                glDrawArrays(GL_POINTS, 0, verticesToDraw.size()/3);
+                // glUseProgram(0);
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+                glfwSwapBuffers(window);
+            }
+
+            if (io.KeyAlt && !ImGui::IsAnyItemActive()){
+                glBindVertexArray(VAO_pointsToDraw);
+                glBindBuffer(GL_ARRAY_BUFFER, VBO_pointsToDraw);
+                glBufferData(GL_ARRAY_BUFFER, verticesToDraw.size()*sizeof(GLfloat), &verticesToDraw[0], GL_DYNAMIC_DRAW);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+                glEnableVertexAttribArray(0); 
+                glBindVertexArray(VAO_pointsToDraw);
+                glDrawArrays(GL_POINTS, 0, verticesToDraw.size()/3);
+                // glUseProgram(0);
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+                glfwSwapBuffers(window);
             }
         }
         if(flag==0){
