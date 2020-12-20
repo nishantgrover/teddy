@@ -27,7 +27,7 @@ void pushPoint(float x,float y){
     double rescaled_x = -1.0 + ((1.0*x - 0) / (width - 0)) * (1.0 - (-1.0));
     double rescaled_y = -1.0 + ((1.0*(height - y) - 0) / (height - 0)) * (1.0 - (-1.0));
     p2t::Point* p = new p2t::Point(rescaled_x,rescaled_y); 
-    double minDist = 0.25;
+    double minDist = 0.15;
     if (points.empty()){
         points.push_back(p);
     }
@@ -174,9 +174,7 @@ int main(int, char* argv[])
             createHalfEdgeBuffers(points,triangles,vertices,faces);
             markTriangles(faces);
             faces= pruneTriangles(vertices, faces);
-            for (auto v:vertices){
-                std::cout<<"X: "<<v->x<<"  Y:   "<< v->y<<"  V->Boundary:  "<<v->boundary<<" OPPOSiTE: "<<v->e->opposite<<"   VNUM: "<<v->vNum<<" "<<std::endl;
-            }
+
            
             // makeFaceBuffer();
             controlPointsUpdated = true;
@@ -196,6 +194,11 @@ int main(int, char* argv[])
             verticesToDraw.clear();
             std::cout<<"----------------------------------------------------------\n";
             int n=0;
+            for (auto v:vertices){
+                std::cout<<"v: "<<v->vNum<<std::endl;
+                // std::cout<<"X: "<<v->x<<"  Y:   "<< v->y<<"  V->Boundary:  "<<v->boundary<<" OPPOSiTE: "<<v->e->opposite<<"   VNUM: "<<v->vNum<<" "<<std::endl;
+                std::cout<<" OPPOSiTE: "<<v->e->opposite<<"\n";
+            }
             faces= erection(vertices, faces);
 
             for(auto v:vertices){
