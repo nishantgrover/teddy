@@ -14,7 +14,7 @@
 #CXX = g++
 #CXX = clang++
 
-EXE = ./testing
+EXE = ./teddy
 SOURCES = ./src/main.cpp
 SOURCES += ../depends/imgui_impl_glfw.cpp ../imgui_impl_opengl3.cpp
 SOURCES += ./src/utils.cpp 

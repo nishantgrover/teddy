@@ -180,7 +180,9 @@ int main(int, char* argv[])
             controlPointsUpdated = true;
             mouseDowned = false;
         }
-        else if (io.MouseReleased[1] &&  !ImGui::IsAnyItemActive() && !ImGui::IsAnyItemHovered()){
+        else if ((io.MouseReleased[1] || io.MouseReleased[2]) &&  !ImGui::IsAnyItemActive() && !ImGui::IsAnyItemHovered()){
+            if(io.MouseReleased[2])
+                faces= erection(vertices, faces);
             makeFaceBuffer();
             controlPointsUpdated = true;
             mouseDowned = false;
@@ -208,7 +210,7 @@ int main(int, char* argv[])
                     verticesToDraw.push_back(v->z);
                     n++;
                 }
-                std::cout<<"X: "<<v->x<<"  Y:   "<< v->y<<"  V->Boundary:  "<<v->boundary<<" OPPOSiTE: "<<v->e->opposite<<"   VNUM: "<<v->vNum<<" "<<std::endl;
+                std::cout<<"X: "<<v->x<<"  Y:   "<< v->y<<"  Z:   "<< v->z<<"  V->Boundary:  "<<v->boundary<<" OPPOSiTE: "<<v->e->opposite<<"   VNUM: "<<v->vNum<<" "<<std::endl;
             }
             std::cout<<"OUTSIDE TOTAL:       "<<n<<std::endl;
             controlPointsUpdated=true;
@@ -245,7 +247,7 @@ int main(int, char* argv[])
                 glfwSwapBuffers(window);
             }
 
-            if ((io.MouseReleased[0] || io.MouseReleased[1] || io.KeyShift) &&  !ImGui::IsAnyItemActive()){
+            if ((io.MouseReleased[0] || io.MouseReleased[1] || io.KeyShift || io.MouseReleased[2]) &&  !ImGui::IsAnyItemActive()){
                 glBindVertexArray(VAO_triangles);
                 glBindBuffer(GL_ARRAY_BUFFER, VAO_triangles);
                 glBufferData(GL_ARRAY_BUFFER, triangleFlattenedArray.size()*sizeof(GLfloat), &triangleFlattenedArray[0], GL_DYNAMIC_DRAW);
