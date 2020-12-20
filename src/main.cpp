@@ -67,22 +67,43 @@ void makeFaceBuffer(){
     for (auto face: faces){
         triangleFlattenedArray.push_back(face->e->v->x);
         triangleFlattenedArray.push_back(face->e->v->y);
-        triangleFlattenedArray.push_back(0);
+        triangleFlattenedArray.push_back(face->e->v->z);
         triangleFlattenedArray.push_back(face->e->next->v->x);
         triangleFlattenedArray.push_back(face->e->next->v->y);
-        triangleFlattenedArray.push_back(0);
+        triangleFlattenedArray.push_back(face->e->next->v->z);
         triangleFlattenedArray.push_back(face->e->next->next->v->x);
         triangleFlattenedArray.push_back(face->e->next->next->v->y);
-        triangleFlattenedArray.push_back(0);
+        triangleFlattenedArray.push_back(face->e->next->next->v->z);
         triangleFlattenedArray.push_back(face->e->v->x);
         triangleFlattenedArray.push_back(face->e->v->y);
-        triangleFlattenedArray.push_back(0);
+        triangleFlattenedArray.push_back(face->e->v->z);
         triangleFlattenedArray.push_back(face->e->next->next->v->x);
         triangleFlattenedArray.push_back(face->e->next->next->v->y);
-        triangleFlattenedArray.push_back(0);
+        triangleFlattenedArray.push_back(face->e->next->next->v->z);
         triangleFlattenedArray.push_back(face->e->next->v->x);
         triangleFlattenedArray.push_back(face->e->next->v->y);
-        triangleFlattenedArray.push_back(0);
+        triangleFlattenedArray.push_back(face->e->next->v->z);
+    }
+
+    for (auto face: faces){
+        triangleFlattenedArray.push_back(face->e->v->x);
+        triangleFlattenedArray.push_back(face->e->v->y);
+        triangleFlattenedArray.push_back(-1*face->e->v->z);
+        triangleFlattenedArray.push_back(face->e->next->v->x);
+        triangleFlattenedArray.push_back(face->e->next->v->y);
+        triangleFlattenedArray.push_back(-1*face->e->next->v->z);
+        triangleFlattenedArray.push_back(face->e->next->next->v->x);
+        triangleFlattenedArray.push_back(face->e->next->next->v->y);
+        triangleFlattenedArray.push_back(-1*face->e->next->next->v->z);
+        triangleFlattenedArray.push_back(face->e->v->x);
+        triangleFlattenedArray.push_back(face->e->v->y);
+        triangleFlattenedArray.push_back(-1*face->e->v->z);
+        triangleFlattenedArray.push_back(face->e->next->next->v->x);
+        triangleFlattenedArray.push_back(face->e->next->next->v->y);
+        triangleFlattenedArray.push_back(-1*face->e->next->next->v->z);
+        triangleFlattenedArray.push_back(face->e->next->v->x);
+        triangleFlattenedArray.push_back(face->e->next->v->y);
+        triangleFlattenedArray.push_back(-1*face->e->next->v->z);
     }
 
 }
@@ -194,14 +215,9 @@ int main(int, char* argv[])
         }
         else if (io.KeyCtrl &&  !ImGui::IsAnyItemActive() && !ImGui::IsAnyItemHovered()){
             verticesToDraw.clear();
-            std::cout<<"----------------------------------------------------------\n";
+            // std::cout<<"----------------------------------------------------------\n";
             int n=0;
-            for (auto v:vertices){
-                std::cout<<"v: "<<v->vNum<<std::endl;
-                // std::cout<<"X: "<<v->x<<"  Y:   "<< v->y<<"  V->Boundary:  "<<v->boundary<<" OPPOSiTE: "<<v->e->opposite<<"   VNUM: "<<v->vNum<<" "<<std::endl;
-                std::cout<<" OPPOSiTE: "<<v->e->opposite<<"\n";
-            }
-            faces= erection(vertices, faces);
+            // faces= erection(vertices, faces);
 
             for(auto v:vertices){
                 if(v->boundary){
@@ -210,7 +226,6 @@ int main(int, char* argv[])
                     verticesToDraw.push_back(v->z);
                     n++;
                 }
-                std::cout<<"X: "<<v->x<<"  Y:   "<< v->y<<"  Z:   "<< v->z<<"  V->Boundary:  "<<v->boundary<<" OPPOSiTE: "<<v->e->opposite<<"   VNUM: "<<v->vNum<<" "<<std::endl;
             }
             std::cout<<"OUTSIDE TOTAL:       "<<n<<std::endl;
             controlPointsUpdated=true;
@@ -218,7 +233,7 @@ int main(int, char* argv[])
         else if (io.KeyAlt &&  !ImGui::IsAnyItemActive() && !ImGui::IsAnyItemHovered()){
             
             verticesToDraw.clear();
-            std::cout<<"#############################################################\n";
+            // std::cout<<"#############################################################\n";
             int n=0;
             for(auto v:vertices){
                 if(!v->boundary){
@@ -227,7 +242,6 @@ int main(int, char* argv[])
                     verticesToDraw.push_back(v->z);
                     n++;
                 }
-                std::cout<<"X: "<<v->x<<"  Y:   "<< v->y<<"  V->Boundary:  "<<v->boundary<<" OPPOSiTE: "<<v->e->opposite<<"   VNUM: "<<v->vNum<<" "<<std::endl;
             }
             std::cout<<"INSIDE TOTAL:       "<<n<<std::endl;
             controlPointsUpdated=true;
@@ -270,7 +284,7 @@ int main(int, char* argv[])
                 glEnableVertexAttribArray(0); 
                 glBindVertexArray(VAO_pointsToDraw);
                 glDrawArrays(GL_POINTS, 0, verticesToDraw.size()/3);
-                // glUseProgram(0);
+                glUseProgram(0);
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
                 glfwSwapBuffers(window);
             }
@@ -283,7 +297,7 @@ int main(int, char* argv[])
                 glEnableVertexAttribArray(0); 
                 glBindVertexArray(VAO_pointsToDraw);
                 glDrawArrays(GL_POINTS, 0, verticesToDraw.size()/3);
-                // glUseProgram(0);
+                glUseProgram(0);
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
                 glfwSwapBuffers(window);
             }
