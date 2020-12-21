@@ -19,3 +19,7 @@ Note that Poly2tri and ImGui are already included in the source code, so you wou
 ## Usage
 1. Click the left mouse button and drag your mouse to sketch whatever you like.
 2. Clear the drawn figures using the clear button.
+3. Click the right mouse button to apply pruning.
+4. Click the middle mouse button to sew triangles and elevate the edges.
+5. Click Shift if you wish to go back to Delaunay Triangulation, Right mouse button for pruning and middle mouse button for sewing the triangles and elevating the edges.
+6. Press Ctrl to Rotate the 3D mesh
