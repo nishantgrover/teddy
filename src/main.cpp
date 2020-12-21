@@ -19,7 +19,7 @@ std::vector<vertex *> vertices;
 std::vector<face *> faces;
 std::map<std::pair<int ,int>,struct halfedge *> dictionary_edges;
 p2t::CDT* cdt;
-float translation[] = {0.0,0.0};
+float translation[] = {0.0,1.0};
 
 
 void pushPoint(float x,float y){
@@ -61,6 +61,7 @@ void addToTriangleBuffer(){
     }
 }
 
+
 void makeFaceBuffer(){
     triangleFlattenedArray.clear();
     
@@ -68,12 +69,15 @@ void makeFaceBuffer(){
         triangleFlattenedArray.push_back(face->e->v->x);
         triangleFlattenedArray.push_back(face->e->v->y);
         triangleFlattenedArray.push_back(face->e->v->z);
+        std::cout<<face->e->v->z<<": Z-value\n";
         triangleFlattenedArray.push_back(face->e->next->v->x);
         triangleFlattenedArray.push_back(face->e->next->v->y);
         triangleFlattenedArray.push_back(face->e->next->v->z);
+        std::cout<<face->e->next->v->z<<": Z-value\n";
         triangleFlattenedArray.push_back(face->e->next->next->v->x);
         triangleFlattenedArray.push_back(face->e->next->next->v->y);
         triangleFlattenedArray.push_back(face->e->next->next->v->z);
+        std::cout<<face->e->next->next->v->z<<": Z-value\n";
         triangleFlattenedArray.push_back(face->e->v->x);
         triangleFlattenedArray.push_back(face->e->v->y);
         triangleFlattenedArray.push_back(face->e->v->z);
@@ -89,12 +93,15 @@ void makeFaceBuffer(){
         triangleFlattenedArray.push_back(face->e->v->x);
         triangleFlattenedArray.push_back(face->e->v->y);
         triangleFlattenedArray.push_back(-1*face->e->v->z);
+        std::cout<<-1*face->e->v->z<<": Z-value\n";
         triangleFlattenedArray.push_back(face->e->next->v->x);
         triangleFlattenedArray.push_back(face->e->next->v->y);
         triangleFlattenedArray.push_back(-1*face->e->next->v->z);
+        std::cout<<-1*face->e->next->v->z<<": Z-value\n";
         triangleFlattenedArray.push_back(face->e->next->next->v->x);
         triangleFlattenedArray.push_back(face->e->next->next->v->y);
         triangleFlattenedArray.push_back(-1*face->e->next->next->v->z);
+        std::cout<<-1*face->e->next->next->v->z<<": Z-value\n";
         triangleFlattenedArray.push_back(face->e->v->x);
         triangleFlattenedArray.push_back(face->e->v->y);
         triangleFlattenedArray.push_back(-1*face->e->v->z);
@@ -143,7 +150,20 @@ int main(int, char* argv[])
     //Display loop
     int flag=0;
     bool displayFlag=true;
+
+    glm::mat4 view = glm::lookAt(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
     
+    glUseProgram(shaderProgram);
+    int vView_uniform = glGetUniformLocation(shaderProgram, "vView");
+    if(vView_uniform == -1){
+        fprintf(stderr, "Could not bind location: vView\n");
+        exit(0);
+    }
+    glUniformMatrix4fv(vView_uniform, 1, GL_FALSE, glm::value_ptr(view));    
+
+    bool threeDFlag=false;
+    bool timerStarted=false;
+    double base_timer=0.0;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -156,6 +176,20 @@ int main(int, char* argv[])
 
         // Rendering
         showOptionsDialog(controlPoints,points,triangles,triangleFlattenedArray, displayFlag,io);
+        if(threeDFlag){
+            if(!timerStarted){
+                timerStarted=true;
+                base_timer=glfwGetTime();
+            }
+            double current_seconds = glfwGetTime();
+            double timeCurrent=current_seconds-base_timer;
+            if(timeCurrent>10)
+                timeCurrent-=10*floor(timeCurrent/10);
+            float z_val=floor(timeCurrent*5);
+            translation[0]=z_val/10;
+        }
+        view = glm::lookAt(glm::normalize(glm::vec3(0.0, translation[0], translation[1])), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+        glUniformMatrix4fv(vView_uniform, 1, GL_FALSE, glm::value_ptr(view));
 
         ImGui::Render();
         // Add a new point on mouse click
@@ -213,21 +247,21 @@ int main(int, char* argv[])
             controlPointsUpdated = true;
             mouseDowned = false;
         }
-        else if (io.KeyCtrl &&  !ImGui::IsAnyItemActive() && !ImGui::IsAnyItemHovered()){
-            verticesToDraw.clear();
-            // std::cout<<"----------------------------------------------------------\n";
-            int n=0;
-            // faces= erection(vertices, faces);
+        else if (io.KeyCtrl){
+            // verticesToDraw.clear();
+            // // std::cout<<"----------------------------------------------------------\n";
+            // int n=0;
+            // // faces= erection(vertices, faces);
 
-            for(auto v:vertices){
-                if(v->boundary){
-                    verticesToDraw.push_back(v->x);
-                    verticesToDraw.push_back(v->y);
-                    verticesToDraw.push_back(v->z);
-                    n++;
-                }
-            }
-            std::cout<<"OUTSIDE TOTAL:       "<<n<<std::endl;
+            // for(auto v:vertices){
+            //     if(v->boundary){
+            //         verticesToDraw.push_back(v->x);
+            //         verticesToDraw.push_back(v->y);
+            //         verticesToDraw.push_back(v->z);
+            //         n++;
+            //     }
+            // }
+            // std::cout<<"OUTSIDE TOTAL:       "<<n<<std::endl;
             controlPointsUpdated=true;
         }
         else if (io.KeyAlt &&  !ImGui::IsAnyItemActive() && !ImGui::IsAnyItemHovered()){
@@ -261,7 +295,9 @@ int main(int, char* argv[])
                 glfwSwapBuffers(window);
             }
 
-            if ((io.MouseReleased[0] || io.MouseReleased[1] || io.KeyShift || io.MouseReleased[2]) &&  !ImGui::IsAnyItemActive()){
+            if ((io.MouseReleased[0] || io.MouseReleased[1] || io.KeyShift || io.MouseReleased[2] ||io.KeyCtrl) &&  !ImGui::IsAnyItemActive()){
+                if(io.KeyCtrl)
+                    threeDFlag=true;
                 glBindVertexArray(VAO_triangles);
                 glBindBuffer(GL_ARRAY_BUFFER, VAO_triangles);
                 glBufferData(GL_ARRAY_BUFFER, triangleFlattenedArray.size()*sizeof(GLfloat), &triangleFlattenedArray[0], GL_DYNAMIC_DRAW);
@@ -276,18 +312,18 @@ int main(int, char* argv[])
                 controlPointsUpdated = false;
             }
 
-            if (io.KeyCtrl && !ImGui::IsAnyItemActive()){
-                glBindVertexArray(VAO_pointsToDraw);
-                glBindBuffer(GL_ARRAY_BUFFER, VBO_pointsToDraw);
-                glBufferData(GL_ARRAY_BUFFER, verticesToDraw.size()*sizeof(GLfloat), &verticesToDraw[0], GL_DYNAMIC_DRAW);
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-                glEnableVertexAttribArray(0); 
-                glBindVertexArray(VAO_pointsToDraw);
-                glDrawArrays(GL_POINTS, 0, verticesToDraw.size()/3);
-                glUseProgram(0);
-                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-                glfwSwapBuffers(window);
-            }
+            // if (io.KeyCtrl && !ImGui::IsAnyItemActive()){
+            //     glBindVertexArray(VAO_pointsToDraw);
+            //     glBindBuffer(GL_ARRAY_BUFFER, VBO_pointsToDraw);
+            //     glBufferData(GL_ARRAY_BUFFER, verticesToDraw.size()*sizeof(GLfloat), &verticesToDraw[0], GL_DYNAMIC_DRAW);
+            //     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+            //     glEnableVertexAttribArray(0); 
+            //     glBindVertexArray(VAO_pointsToDraw);
+            //     glDrawArrays(GL_POINTS, 0, verticesToDraw.size()/3);
+            //     glUseProgram(0);
+            //     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            //     glfwSwapBuffers(window);
+            // }
 
             if (io.KeyAlt && !ImGui::IsAnyItemActive()){
                 glBindVertexArray(VAO_pointsToDraw);

@@ -38,7 +38,7 @@ void showOptionsDialog(std::vector<float> &points, std::vector<p2t::Point*>& p2t
 
 
         if (ImGui::SliderFloat2("position", translation, -1.0, 1.0)){
-            std::cout<<"good party"<<std::endl;
+            std::cout<<"good party: "<<translation[0]<<std::endl;
 
         }
             // ImGui::End();
