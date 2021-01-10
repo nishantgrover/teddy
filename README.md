@@ -1,5 +1,5 @@
 # [Teddy](https://www.cs.toronto.edu/~jacobson/seminar/igarashi-et-al-1999.pdf) - An OpenGL implementation
-A sketching interface which converts the 2D freeform strokes created on the screen to a 3D model in OpenGL. This project is inspired by Teddy (Igarashi et al. , 1999) and aims to recreate it in OpenGL.
+A sketching interface which converts the 2D freeform strokes created on the screen to a 3D model in OpenGL. This project is inspired by Teddy (Igarashi et al. , 1999) and aims to recreate it on OpenGL.
 
 ## Dependencies
 1. [OpenGL](https://www.opengl.org/)
